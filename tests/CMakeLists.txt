@@ -32,12 +32,27 @@ add_executable(playback_test playback/playbacktest.cpp)
 target_link_libraries(playback_test Catch2::Catch2WithMain playback)
 catch_discover_tests(playback_test)
 
-add_executable(playback_engine_test playback/playbackenginetest.mm)
-target_link_libraries(playback_engine_test Catch2::Catch2WithMain scribe_lib)
-target_compile_options(playback_engine_test PRIVATE -fobjc-arc)
-catch_discover_tests(playback_engine_test)
-
-# App (native UI) tests
+# App (QML UI) tests
 add_executable(audio_manager_test app/audio_manager_test.cpp)
 target_link_libraries(audio_manager_test Catch2::Catch2WithMain scribe_lib)
 catch_discover_tests(audio_manager_test)
+
+add_executable(recording_controller_test app/recording_controller_test.cpp)
+target_link_libraries(recording_controller_test Catch2::Catch2WithMain scribe_lib)
+catch_discover_tests(recording_controller_test)
+
+# Loads the full ScribeUI module offscreen to catch QML errors at test time.
+add_executable(qml_load_test app/qml_load_test.cpp)
+target_link_libraries(qml_load_test
+    Catch2::Catch2WithMain
+    scribe_lib
+    scribe_libplugin
+    Qt6::Gui
+    Qt6::Quick
+    Qt6::QuickControls2
+    Qt6::Svg
+    Qt6::Multimedia
+)
+catch_discover_tests(qml_load_test
+    PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_MEDIA_BACKEND=darwin"
+)

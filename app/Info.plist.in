@@ -43,7 +43,7 @@
     <key>com.apple.security.device.audio-input</key>
     <true/>
 	<key>NSAudioCaptureUsageDescription</key>
-	<string>LoopMac requires access to system audio to capture audio output for replay.</string>
+	<string>Scribe requires access to system audio to capture audio output for replay.</string>
 
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>

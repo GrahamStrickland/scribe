@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 project(Scribe 
-    VERSION 0.0.13
+    VERSION 0.0.15
     DESCRIPTION "Audio loopback and replay application for transcription"
     HOMEPAGE_URL "https://github.com/GrahamStrickland/scribe"
     LANGUAGES CXX OBJCXX
@@ -23,6 +23,18 @@ if(SCRIBE_ENABLE_ASAN)
 endif()
 
 include(CTest)
+
+# Qt is found here so its imported targets are visible to both app/ and tests/.
+find_package(Qt6 6.12 REQUIRED COMPONENTS
+    Core
+    Gui
+    Qml
+    Quick
+    QuickControls2
+    Svg
+    Multimedia
+)
+qt_standard_project_setup(REQUIRES 6.12)
 
 # Libraries
 add_subdirectory(utils)

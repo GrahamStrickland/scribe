@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.15] - 2026-10-01
+
+### Changed
+
+- Replaced the native AppKit UI with a Qt Quick (QML) UI (`Main.qml`,
+  `PlaybackControl`, `PlaybackSeekControl`, `AudioControl`), restoring the
+  pre-0.0.4 controls and adding the recording, save, and permission flows plus
+  File/Window/Help menus
+- Replaced the AVFoundation `PlaybackEngine` with Qt Multimedia `MediaPlayer`,
+  forced to the AVFoundation (`darwin`) backend
+- Replaced SF Symbols with bundled SVG icons
+- Qt 6.12 is now a build requirement, including in CI
+
+### Added
+
+- `RecordingController` QML type wrapping `AudioManager` with tests
+- `TimeFormatter` QML singleton exposing `format_to_minutes`
+- QML load test that fails on any QML warning
+
+### Removed
+
+- AppKit UI (`main.mm`, `AppDelegate`, `MainWindowController`,
+  `PlaybackControlView`), `PlaybackEngine`, and its tests
+
 ## [0.0.14] - 2026-10-01
 
 ### Added
