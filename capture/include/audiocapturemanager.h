@@ -50,6 +50,9 @@ typedef void (*TCCRequestFuncType)(CFStringRef service, CFDictionaryRef options,
   // Queue for audio operations
   dispatch_queue_t _audioQueue;
 
+  // Callback for target audio format configuration
+  void (^_audioFormatCallback)(Float64, UInt32);
+
   // Callback for audio data
   void (^_audioDataCallback)(NSData *audioData);
 
@@ -85,6 +88,17 @@ typedef void (*TCCRequestFuncType)(CFStringRef service, CFDictionaryRef options,
 - (BOOL)stopCapture:(NSError **)error;
 
 /**
+ * @brief Set the callback function for configuring the audio engine to
+ * capture audio data.
+ * @param callback Block that will be called with the sample rate and number
+ * of channels of the data delivered to the audio data callback.
+ * @note The callback is invoked on the main thread each time capture starts,
+ * before any audio data is delivered.
+ */
+- (void)setAudioFormatCallback:(void (^)(Float64 sampleRate,
+                                         UInt32 numChannels))callback;
+
+/**
  * @brief Set the callback function for receiving captured audio data.
  * @param callback Block that will be called with captured audio data.
  * @note The callback is invoked on a dedicated audio queue thread.
@@ -112,7 +126,7 @@ typedef void (*TCCRequestFuncType)(CFStringRef service, CFDictionaryRef options,
 
 /**
  * @brief Clean up and release audio resources.
- * @note Called internally udring deallocation or when stopping capture.
+ * @note Called internally during deallocation or when stopping capture.
  */
 - (void)destroyAudioResources;
 

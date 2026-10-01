@@ -5,6 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "audioengine.h"
+#include "wavheader.h"
 
 namespace fs = std::filesystem;
 
@@ -47,8 +48,8 @@ TEST_CASE("AudioEngine captures audio data correctly", "[audio]") {
   mock_audio_data data_mock{};
   auto audio_data = data_mock.get_audio_data();
 
-  audio_engine.write_audio_data(audio_data, 4);
-  REQUIRE(audio_engine.size_written() == 4);
+  audio_engine.capture_audio_data(audio_data, 4 * sizeof(float));
+  REQUIRE(audio_engine.size_captured() == 4);
 };
 
 TEST_CASE("AudioEngine writes audio data to file correctly", "[audio]") {
@@ -58,7 +59,7 @@ TEST_CASE("AudioEngine writes audio data to file correctly", "[audio]") {
 
   mock_audio_data data_mock{};
   auto audio_data = data_mock.get_audio_data();
-  audio_engine.write_audio_data(audio_data, 4);
+  audio_engine.capture_audio_data(audio_data, 4 * sizeof(float));
   auto success =
       audio_engine.export_audio_data_to_wav(temp.path.string(), error_msg);
 
@@ -86,9 +87,33 @@ TEST_CASE("AudioEngine fails to write audio data to existing file", "[audio]") {
 
   mock_audio_data data_mock{};
   auto audio_data = data_mock.get_audio_data();
-  audio_engine.write_audio_data(audio_data, 4);
+  audio_engine.capture_audio_data(audio_data, 4 * sizeof(float));
   auto success =
       audio_engine.export_audio_data_to_wav(temp.path.string(), error_msg);
 
   REQUIRE(!success);
+}
+
+TEST_CASE("AudioEngine writes configured format to WAV header", "[audio]") {
+  temp_file_guard temp("test_format.wav");
+  auto audio_engine = audio::audio_engine(1.0);
+  std::string error_msg;
+
+  audio_engine.configure_format(44100.0, 2);
+
+  mock_audio_data data_mock{};
+  audio_engine.capture_audio_data(data_mock.get_audio_data(),
+                                  4 * sizeof(float));
+  REQUIRE(audio_engine.export_audio_data_to_wav(temp.path.string(), error_msg));
+
+  std::ifstream file(temp.path, std::ios::binary);
+  wav_header header;
+  file.read(reinterpret_cast<char *>(&header), sizeof(wav_header));
+  REQUIRE(file.gcount() == sizeof(wav_header));
+
+  REQUIRE(header.sample_rate == 44100);
+  REQUIRE(header.num_channels == 2);
+  REQUIRE(header.block_align == 8);
+  REQUIRE(header.byte_rate == 352800);
+  REQUIRE(header.sub_chunk2_size == 4 * sizeof(float));
 }

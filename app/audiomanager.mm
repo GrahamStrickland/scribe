@@ -26,8 +26,17 @@ std::string describe_error(NSError *error) {
 } // namespace
 
 AudioManager::AudioManager() : pimpl(new impl) {
-  _audioEngine = new audio::audio_engine();
+  _audioEngine =
+      new audio::audio_engine(3600.0); // TODO: Figure out a way to set this
+                                       // dynamically or use a sensible default
   pimpl->captureManager = [[AudioCaptureManager alloc] init];
+
+  [pimpl->captureManager
+      setAudioFormatCallback:^(Float64 sampleRate, UInt32 numChannels) {
+        _audioEngine->configure_format(static_cast<double>(sampleRate),
+                                       static_cast<uint32_t>(numChannels));
+      }];
+
   [pimpl->captureManager setAudioDataCallback:^(NSData *audioData) {
     if (!audioData)
       return;
@@ -35,7 +44,7 @@ AudioManager::AudioManager() : pimpl(new impl) {
     const void *rawBytes = [audioData bytes];
     std::size_t byteLength = [audioData length];
 
-    _audioEngine->write_audio_data(rawBytes, byteLength);
+    _audioEngine->capture_audio_data(rawBytes, byteLength);
   }];
 }
 

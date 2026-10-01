@@ -8,6 +8,7 @@
 
 // Constants for audio format
 static const Float64 kTargetSampleRate = 22050.0;
+static const UInt32 kTargetChannelCount = 1;
 static const UInt32 kPreferredBufferSize =
     4096; // Added preferred buffer size (samples)
 
@@ -71,8 +72,12 @@ static AudioCaptureManager *sharedInstance = nil;
   scribe_log("AudioCaptureManager", "Deallocating");
   [self stopDeviceMonitoring];
   [self destroyAudioResources];
+
+  [_audioFormatCallback release];
+  _audioFormatCallback = nil;
   [_audioDataCallback release];
   _audioDataCallback = nil;
+
   if (_tccHandle) {
     scribe_log("AudioCaptureManager", "Closing TCC framework handle");
     dlclose(_tccHandle);
@@ -160,6 +165,18 @@ static AudioCaptureManager *sharedInstance = nil;
     return NO;
   }
 
+  // Captured data is downmixed and resampled before delivery (see
+  // handleAudioInput:), so report the delivered format rather than the
+  // aggregate device's native one. Queued on the main thread ahead of any
+  // audio data, which is only delivered once _isCapturing is set. The callback
+  // is captured instead of self so a pending block never keeps self alive.
+  void (^formatCallback)(Float64, UInt32) = _audioFormatCallback;
+  if (formatCallback) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+      formatCallback(kTargetSampleRate, kTargetChannelCount);
+    });
+  }
+
   _isCapturing = YES;
   scribe_log("AudioCaptureManager", "Audio capture started successfully");
   return YES;
@@ -208,7 +225,14 @@ static AudioCaptureManager *sharedInstance = nil;
   return YES;
 }
 
-#pragma mark - Audio Data Callback
+#pragma mark - Audio Callbacks
+
+- (void)setAudioFormatCallback:(void (^)(Float64 sampleRate,
+                                         UInt32 numChannels))callback {
+  void (^previousCallback)(Float64, UInt32) = _audioFormatCallback;
+  _audioFormatCallback = [callback copy];
+  [previousCallback release];
+}
 
 - (void)setAudioDataCallback:(void (^)(NSData *audioData))callback {
   void (^previousCallback)(NSData *) = _audioDataCallback;
@@ -743,7 +767,7 @@ static OSStatus HandleAudioDeviceIOProc(AudioDeviceID inDevice,
                  "- Frames per packet: " +
                      std::to_string(format.mFramesPerPacket));
       scribe_log("AudioCaptureManager",
-                 "- Byes per frame: " + std::to_string(format.mBytesPerFrame));
+                 "- Bytes per frame: " + std::to_string(format.mBytesPerFrame));
       scribe_log("AudioCaptureManager",
                  "- Channels per frame: " +
                      std::to_string(format.mChannelsPerFrame));

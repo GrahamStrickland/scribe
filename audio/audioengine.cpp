@@ -7,31 +7,38 @@
 #include "logutil.h"
 #include "wavheader.h"
 
-static const double sample_rate = 48000.0;
-static const uint32_t num_channels = 1;
-
 namespace audio {
-audio_engine::audio_engine(double total_seconds) {
-  total_seconds = (total_seconds == 0.0 ? 3600.0 : total_seconds);
+audio_engine::audio_engine(double total_seconds)
+    : m_total_seconds{total_seconds == 0.0 ? 3600.0 : total_seconds} {
   scribe_log("audio_engine", "Allocating buffer for " +
-                                 std::to_string(total_seconds) +
+                                 std::to_string(m_total_seconds) +
                                  "s total audio capture time");
+}
 
-  std::size_t total_samples =
-      static_cast<std::size_t>(total_seconds * sample_rate * num_channels);
+void audio_engine::configure_format(double sample_rate, uint32_t num_channels) {
+  scribe_log("audio_engine",
+             "Setting sample rate to " + std::to_string(sample_rate));
+  m_sample_rate = sample_rate;
+  scribe_log("audio_engine",
+             "Setting number of channels to " + std::to_string(num_channels));
+  m_num_channels = num_channels;
+
+  std::size_t total_samples = static_cast<std::size_t>(
+      m_total_seconds * m_sample_rate * m_num_channels);
   std::size_t safety_padding =
-      static_cast<std::size_t>(5.0 * sample_rate * num_channels);
-  pcm_buffer.reserve(total_samples + safety_padding);
+      static_cast<std::size_t>(5.0 * m_sample_rate * m_num_channels);
+  m_pcm_buffer.reserve(total_samples + safety_padding);
 
-  std::size_t total_bytes = pcm_buffer.capacity() * sizeof(float);
+  std::size_t total_bytes = m_pcm_buffer.capacity() * sizeof(float);
   scribe_log("audio_engine",
              "Allocated " + std::to_string(total_bytes) + " bytes");
 }
 
-void audio_engine::write_audio_data(const void *raw_bytes,
-                                    std::size_t byte_length) {
-  const float *byte_ptr = static_cast<const float *>(raw_bytes);
-  pcm_buffer.insert(pcm_buffer.end(), byte_ptr, byte_ptr + byte_length);
+void audio_engine::capture_audio_data(const void *raw_bytes,
+                                      std::size_t byte_length) {
+  const float *sample_ptr = static_cast<const float *>(raw_bytes);
+  const std::size_t num_samples = byte_length / sizeof(float);
+  m_pcm_buffer.insert(m_pcm_buffer.end(), sample_ptr, sample_ptr + num_samples);
 }
 
 bool audio_engine::export_audio_data_to_wav(const std::string &filename,
@@ -47,21 +54,21 @@ bool audio_engine::export_audio_data_to_wav(const std::string &filename,
 
   // Calculate metadata sizes based on input parameters
   uint32_t data_byte_size =
-      static_cast<uint32_t>(pcm_buffer.size() * sizeof(float));
+      static_cast<uint32_t>(m_pcm_buffer.size() * sizeof(float));
   wav_header header;
-  header.num_channels = num_channels;
-  header.sample_rate = sample_rate;
+  header.num_channels = m_num_channels;
+  header.sample_rate = m_sample_rate;
   header.bits_per_sample = 32;
   header.audio_format = 3; // Critical flag for 32-bit floating point audio
 
-  header.block_align = num_channels * (header.bits_per_sample / 8);
-  header.byte_rate = sample_rate * header.block_align;
+  header.block_align = m_num_channels * (header.bits_per_sample / 8);
+  header.byte_rate = m_sample_rate * header.block_align;
   header.sub_chunk2_size = data_byte_size;
   header.chunk_size =
       36 + data_byte_size; // Header overhead (36) + data payload
 
   out_file.write(reinterpret_cast<const char *>(&header), sizeof(wav_header));
-  out_file.write(reinterpret_cast<const char *>(pcm_buffer.data()),
+  out_file.write(reinterpret_cast<const char *>(m_pcm_buffer.data()),
                  data_byte_size);
 
   out_file.close();
@@ -73,5 +80,5 @@ bool audio_engine::export_audio_data_to_wav(const std::string &filename,
   return true;
 }
 
-std::size_t audio_engine::size_written() const { return pcm_buffer.size(); }
+std::size_t audio_engine::size_captured() const { return m_pcm_buffer.size(); }
 } // end namespace audio

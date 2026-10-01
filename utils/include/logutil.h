@@ -43,4 +43,4 @@
  * @endcode
  */
 void scribe_log(const std::string &component, const std::string &message,
-               os_log_type_t type = OS_LOG_TYPE_DEFAULT);
+                os_log_type_t type = OS_LOG_TYPE_DEFAULT);

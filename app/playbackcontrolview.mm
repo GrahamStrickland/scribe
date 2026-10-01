@@ -296,7 +296,7 @@ static const CGFloat kButtonSize = 30.0;
 - (void)startRecording {
   if (_audioManager.startCapture()) {
     scribe_log("PlaybackControlView",
-              "Audio capture authorized - starting recording");
+               "Audio capture authorized - starting recording");
     _recording = YES;
 
     [_engine clearMedia];

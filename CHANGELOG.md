@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.14] - 2026-10-01
+
+### Added
+
+- `setAudioFormatCallback` on `AudioCaptureManager` to be used by `audio_manager`
+
+### Fixed
+
+- Wrong format in saved recordings in `capture/audiocapturemanager.mm`
+- Reading past the buffer in `audio/audioengine.cpp`
+
 ## [0.0.13] - 2026-08-25
 
 ### Fixed

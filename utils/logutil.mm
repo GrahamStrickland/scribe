@@ -51,7 +51,7 @@ os_log_t log_for_component(const std::string &component) {
 } // namespace
 
 void scribe_log(const std::string &component, const std::string &message,
-               os_log_type_t type) {
+                os_log_type_t type) {
   os_log_with_type(log_for_component(component), type, "%{public}s",
                    message.c_str());
 
